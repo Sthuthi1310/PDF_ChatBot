@@ -1,0 +1,137 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>RAG PDF Chatbot</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <!-- Header -->
+        <header>
+            <h1>RAG PDF Chatbot</h1>
+            <p>Upload your PDF and ask questions about its contents.</p>
+        </header>
+
+
+        <main>
+
+            <!-- PDF Upload Section -->
+            <section class="upload-section">
+
+                <h2>Upload Your PDF</h2>
+
+                <div class="upload-box" id="uploadBox">
+
+                    <div class="upload-icon">📄</div>
+
+                    <p>Drag and drop your PDF here</p>
+
+                    <p class="or-text">or</p>
+
+                    <label for="pdfFile" class="upload-button">
+                        Choose PDF
+                    </label>
+
+                    <input
+                        type="file"
+                        id="pdfFile"
+                        accept=".pdf,application/pdf"
+                        hidden
+                    >
+
+                    <p id="fileName">No file selected</p>
+
+                </div>
+
+                <button id="uploadBtn" disabled>
+                    Upload Document
+                </button>
+
+                <p id="status"></p>
+
+                <div id="chunkInfo"></div>
+
+            </section>
+
+
+            <!-- Extracted Text Section -->
+            <section class="result-section">
+
+                <h2>Extracted Text Preview</h2>
+
+                <div id="textPreview">
+                    Your extracted document text will appear here.
+                </div>
+
+            </section>
+
+
+            <!-- Chunk Preview Section -->
+            <section class="result-section">
+
+                <h2>Text Chunk Preview</h2>
+
+                <div id="chunkPreview">
+                    Your document chunks will appear here.
+                </div>
+
+            </section>
+
+
+            <!-- Chatbot Section -->
+            <section class="chat-section">
+
+                <h2>Chat with Your PDF</h2>
+
+                <p class="chat-description">
+                    Ask questions and get answers based on your uploaded document.
+                </p>
+
+                <!-- Chat Messages -->
+                <div id="chatMessages" class="chat-messages">
+
+                    <div class="bot-message">
+                        Hello! Upload a PDF and ask me anything about it.
+                    </div>
+
+                </div>
+
+
+                <!-- Question Input -->
+                <div class="chat-input-area">
+
+                    <input
+                        type="text"
+                        id="questionInput"
+                        placeholder="Ask a question about your PDF..."
+                        autocomplete="off"
+                    >
+
+                    <button id="sendBtn" disabled>
+                        Send
+                    </button>
+
+                </div>
+
+                <p id="chatStatus"></p>
+
+            </section>
+
+        </main>
+
+    </div>
+
+    <script src="/static/script.js"></script>
+
+</body>
+
+</html>
