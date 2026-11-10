@@ -1,267 +1,228 @@
-# AI PDF Chatbot – Chat with Your PDF Using RAG
+# Intelligent Document Question Answering System
 
-## 1. Project Overview
+An AI-powered PDF Question Answering System that allows users to upload PDF documents and ask questions based on their content. The system uses **Retrieval-Augmented Generation (RAG)** to retrieve relevant information from uploaded documents and generate context-aware answers.
 
-AI PDF Chatbot is a web-based application that allows users to upload PDF documents and ask questions based on their contents.
+## Project Overview
 
-The application uses **Retrieval-Augmented Generation (RAG)** to retrieve relevant information from uploaded documents and generate accurate, context-based answers using Google's Gemini API.
+Reading and searching through lengthy PDF documents can be time-consuming. This project simplifies the process by allowing users to interact with their documents through a question-answering interface.
 
-Instead of answering questions using general knowledge, the chatbot retrieves relevant text from the uploaded PDF and uses it as context to generate responses.
+The system extracts text from uploaded PDFs, divides it into smaller chunks, converts the chunks into vector embeddings, and stores them in a FAISS vector database. When a user asks a question, the system retrieves relevant chunks, reranks them using a Cross-Encoder model, and generates an answer using Google's Gemini API.
 
-## 2. Objectives
+## Features
 
-- Allow users to upload PDF documents through a web interface.
-- Extract text from uploaded PDF files.
-- Divide extracted text into smaller, manageable chunks.
-- Generate vector embeddings for the text chunks.
-- Store and retrieve relevant information using FAISS.
-- Generate answers using Google's Gemini API.
-- Support follow-up questions using conversation history.
+- **PDF Upload:** Upload PDF documents through a web interface.
+- **Text Extraction:** Extract textual content from uploaded PDF files.
+- **Text Chunking:** Split extracted text into smaller, manageable chunks.
+- **Semantic Embeddings:** Generate embeddings using Sentence Transformers.
+- **Vector Search:** Retrieve relevant document chunks using FAISS.
+- **Cross-Encoder Reranking:** Improve retrieval relevance by reranking candidate chunks.
+- **AI-Powered Answers:** Generate natural-language answers using Google Gemini.
+- **Context-Aware Conversations:** Support follow-up questions using conversation history.
+- **Flask Backend:** Handle document processing and question-answering requests through REST API endpoints.
 
-## 3. Features
+## Technologies Used
 
-- **PDF Upload:** Upload PDF documents through a simple web interface.
-- **Text Extraction:** Extract readable text from uploaded PDF files.
-- **Text Chunking:** Divide extracted text into smaller chunks for efficient retrieval.
-- **Embedding Generation:** Convert text chunks into numerical vector representations.
-- **Vector Search:** Use FAISS to find relevant chunks based on user queries.
-- **AI-Powered Answers:** Generate context-aware responses using Google's Gemini API.
-- **Chat History:** Maintain recent conversation history to understand follow-up questions.
-- **Document Preview:** Display extracted text after successful PDF processing.
-
-## 4. Technologies Used
-
-| Technology | Purpose |
+| Component | Technology |
 |---|---|
-| Python | Backend development |
-| Flask | Web application framework |
-| HTML | Web page structure |
-| CSS | User interface styling |
-| JavaScript | Frontend interactions |
-| Google Gemini API | AI-based answer generation |
-| FAISS | Vector similarity search |
-| Sentence Transformers | Text embedding generation |
-| PyPDF | PDF text extraction |
-| Python-Dotenv | Environment variable management |
+| Programming Language | Python |
+| Backend Framework | Flask |
+| Frontend | HTML, CSS, JavaScript |
+| Text Extraction | PDF processing library |
+| Text Embeddings | Sentence Transformers |
+| Vector Database | FAISS |
+| Reranking | Cross-Encoder |
+| Language Model | Google Gemini API |
+| Environment Management | Python Virtual Environment |
 
-## 5. Project Architecture
-
-The application follows a Retrieval-Augmented Generation (RAG) architecture.
-
-### Workflow
-
-1. User uploads a PDF document.
-2. The backend extracts text from the PDF.
-3. Extracted text is divided into smaller chunks.
-4. An embedding model converts the chunks into vector embeddings.
-5. The embeddings and corresponding text chunks are stored in FAISS.
-6. User submits a question through the chatbot interface.
-7. The question is converted into an embedding.
-8. FAISS retrieves the most relevant text chunks.
-9. Retrieved chunks are passed to the Gemini API along with the user's question.
-10. Gemini generates an answer based on the retrieved PDF content.
-11. The answer is displayed in the chatbot interface.
-
-## 6. Project Folder Structure
+## System Architecture
 
 ```text
-AI-PDF-Chatbot/
+             PDF Document
+                   |
+                   v
+             PDF Upload
+                   |
+                   v
+             Text Extraction
+                   |
+                   v
+              Text Chunking
+                   |
+                   v
+          Sentence Transformer
+             (Embeddings)
+                   |
+                   v
+            FAISS Vector Store
+                   |
+                   v
+             User Question
+                   |
+                   v
+          Semantic Retrieval
+          (Top 8 Candidates)
+                   |
+                   v
+           Cross-Encoder
+              Reranking
+                   |
+                   v
+           Top 3 Relevant Chunks
+                   |
+                   v
+             Gemini API
+                   |
+                   v
+          Context-Based Answer
+```
+
+## Project Structure
+
+```text
+PDF_ChatBot/
 │
 ├── backend/
-│   └── rag_pipeline.py
+│   ├── __init__.py
+│   ├── routes.py
+│   ├── rag_pipeline.py
+│   └── reranker.py
 │
 ├── document_processing/
+│   ├── __init__.py
 │   ├── pdf_loader.py
 │   └── text_splitter.py
 │
 ├── embeddings/
+│   ├── __init__.py
 │   └── embedder.py
 │
 ├── vectorstore/
+│   ├── __init__.py
 │   └── vector_store.py
+│
+├── frontend/
+│   ├── index.html
+│   ├── style.css
+│   └── script.js
 │
 ├── uploads/
 │
-├── web/
-│   ├── static/
-│   │   ├── css/
-│   │   └── js/
-│   │
-│   └── templates/
-│       └── index.html
-│
-├── app.py
 ├── .env
 ├── .gitignore
+├── app.py
 ├── requirements.txt
 └── README.md
 ```
 
-*Note: The folder structure above represents the main project components. Additional files and folders may be present in your implementation.*
+*Note: Adjust the structure above if your actual project contains additional files or uses different folder names.*
 
-## 7. Installation and Setup
+## Installation and Setup
 
-### Prerequisites
-
-Make sure the following are installed:
-
-- Python 3.10 or later
-- pip (Python package manager)
-- Git
-- Google Gemini API key
-
-### Step 1: Clone the Repository
+### 1. Clone the Repository
 
 ```bash
-git clone <your-github-repository-url>
+git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY.git
 ```
 
 Navigate into the project directory:
 
 ```bash
-cd AI-PDF-Chatbot
+cd PDF_ChatBot
 ```
 
-### Step 2: Create a Virtual Environment
+### 2. Create a Virtual Environment
 
 ```bash
 python -m venv venv
 ```
 
-Activate the virtual environment.
+Activate the environment on Windows:
 
-**Windows:**
-
-```powershell
+```bash
 venv\Scripts\activate
 ```
 
-**Linux / macOS:**
-
-```bash
-source venv/bin/activate
-```
-
-### Step 3: Install Dependencies
+### 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Step 4: Configure Environment Variables
+### 4. Configure the Gemini API Key
 
-Create a `.env` file in the project root directory.
-
-Add your Gemini API key:
+Create a `.env` file in the root directory:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key
 ```
 
-You can obtain an API key from Google AI Studio:
+Replace `your_gemini_api_key` with your actual Google Gemini API key.
 
-https://aistudio.google.com/apikey
+Keep the API key private. Do not upload the `.env` file to GitHub.
 
-Keep your API key private. Never upload your `.env` file to GitHub.
-
-### Step 5: Run the Application
-
-Start the Flask application:
+### 5. Run the Application
 
 ```bash
 python app.py
 ```
 
-Open your browser and navigate to:
+Open the application in your browser:
 
 ```text
-http://127.0.0.1:5000/
+http://127.0.0.1:5001
 ```
 
-## 8. How to Use the Application
+## How It Works
 
-1. Open the application in your browser.
-2. Select a PDF document from your computer.
-3. Click the upload button.
-4. Wait until the PDF is successfully processed.
-5. Navigate to the chat section.
-6. Enter a question related to the uploaded PDF.
-7. Click Send.
-8. View the AI-generated response.
-9. Continue asking follow-up questions about the document.
+### 1. Document Processing
+The user uploads a PDF document. The system extracts its textual content and divides it into smaller chunks.
 
-## 9. Core Components
+### 2. Embedding Generation
+Sentence Transformers converts each text chunk into a numerical vector representation that captures its semantic meaning.
 
-### PDF Processing
+### 3. Vector Storage
+The generated embeddings are stored in a FAISS vector index to support efficient similarity-based retrieval.
 
-The PDF loader extracts readable text from uploaded documents. The extracted text is passed to the text splitter.
+### 4. Relevant Information Retrieval
+When a user submits a question, the system converts it into an embedding and retrieves the eight most relevant chunks from the vector store.
 
-### Text Splitting
+### 5. Cross-Encoder Reranking
+The Cross-Encoder evaluates the question and retrieved chunks together, ranks them according to relevance, and selects the top three chunks.
 
-The text splitter divides the extracted document into smaller chunks. This makes information retrieval more efficient.
+### 6. Answer Generation
+The selected chunks are passed as context to the Gemini API, which generates a natural-language answer based on the retrieved document content.
 
-### Embedding Generation
+## API Endpoints
 
-The embedding module converts text chunks into numerical vectors using a sentence embedding model.
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/upload` | POST | Upload and process a PDF document |
+| `/api/ask` | POST | Submit a question and receive an answer |
 
-### Vector Storage and Retrieval
+## Models Used
 
-FAISS stores the generated embeddings and performs similarity searches to retrieve the most relevant chunks for a given question.
+| Model | Purpose |
+|---|---|
+| Sentence Transformer | Generate semantic embeddings |
+| `cross-encoder/ms-marco-MiniLM-L6-v2` | Rerank retrieved document chunks |
+| `gemini-3.5-flash` | Generate context-aware answers |
 
-### RAG Pipeline
+## Future Enhancements
 
-The RAG pipeline connects PDF processing, text splitting, embedding generation, vector retrieval, and AI-based answer generation.
+- Integrate a RoBERTa-based extractive Question Answering model.
+- Compare extractive answers with Gemini-generated answers.
+- Improve answer accuracy through retrieval and model evaluation.
+- Add support for multiple PDF documents.
+- Improve conversation history management.
+- Implement document-grounded responses with better handling of questions outside the uploaded content.
+- Add performance evaluation using retrieval accuracy, answer quality, and response time.
 
-### Gemini Integration
+## Author
 
-The Gemini API receives the retrieved document context and the user's question. It generates an answer using the provided context.
+**Sthuthi Sheela**
 
-## 10. Retrieval-Augmented Generation (RAG)
+Computer Science and Engineering
 
-RAG combines information retrieval with generative AI.
+## License
 
-It consists of two major stages:
-
-**1. Retrieval**
-
-The system searches the vector database and identifies document chunks that are semantically similar to the user's question.
-
-**2. Generation**
-
-The retrieved information is provided to the language model, which generates a response based on the available document context.
-
-This approach helps the chatbot answer questions using information from the uploaded PDF rather than relying entirely on its pre-trained knowledge.
-
-## 11. Error Handling
-
-The application handles common errors, including:
-
-- Missing PDF files.
-- Unsupported or unreadable PDF content.
-- Empty extracted text.
-- Missing API keys.
-- Empty user questions.
-- Vector retrieval failures.
-- Gemini API errors.
-
-## 12. Future Enhancements
-
-- Support multiple PDF uploads.
-- Allow users to chat with multiple documents simultaneously.
-- Maintain chat sessions across application restarts.
-- Display page references for generated answers.
-- Support additional document formats such as DOCX and TXT.
-- Improve response accuracy through optimized chunking and retrieval.
-- Add user authentication and document management.
-
-## 13. Conclusion
-
-AI PDF Chatbot demonstrates how Retrieval-Augmented Generation can be used to build an intelligent document question-answering system.
-
-By integrating PDF processing, text embeddings, FAISS vector search, and Google's Gemini API, the application enables users to interact with documents through natural language questions.
-
-The project provides practical experience in Python development, Flask, Natural Language Processing, vector databases, and Generative AI.
-
----
-
-**Developed using:** Python, Flask, FAISS, Sentence Transformers, and Google Gemini API.
+This project is intended for educational and academic purposes.
