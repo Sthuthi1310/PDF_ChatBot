@@ -20,11 +20,13 @@ const chatStatus = document.getElementById("chatStatus");
 
 
 // ---------------------------------------
-// TRACK UPLOAD STATUS
+// TRACK UPLOAD STATUS AND CHAT HISTORY
 // ---------------------------------------
 
 let selectedFile = null;
 let documentUploaded = false;
+
+let chatHistory = [];
 
 
 // ---------------------------------------
@@ -32,7 +34,9 @@ let documentUploaded = false;
 // ---------------------------------------
 
 pdfFile.addEventListener("change", function () {
+
     handleFile(this.files[0]);
+
 });
 
 
@@ -41,20 +45,29 @@ pdfFile.addEventListener("change", function () {
 // ---------------------------------------
 
 uploadBox.addEventListener("dragover", function (event) {
+
     event.preventDefault();
+
     uploadBox.style.background = "#eef3fc";
+
 });
+
 
 uploadBox.addEventListener("dragleave", function () {
+
     uploadBox.style.background = "#fafbfe";
+
 });
 
+
 uploadBox.addEventListener("drop", function (event) {
+
     event.preventDefault();
 
     uploadBox.style.background = "#fafbfe";
 
     handleFile(event.dataTransfer.files[0]);
+
 });
 
 
@@ -70,14 +83,17 @@ function handleFile(file) {
         file.type !== "application/pdf" &&
         !file.name.toLowerCase().endsWith(".pdf")
     ) {
+
         status.textContent = "Please select a PDF file.";
         status.style.color = "red";
+
         return;
     }
 
     selectedFile = file;
 
     documentUploaded = false;
+
     sendBtn.disabled = true;
 
     fileName.textContent = "Selected: " + file.name;
@@ -94,6 +110,7 @@ function handleFile(file) {
         "Your document chunks will appear here.";
 
     uploadBtn.disabled = false;
+
 }
 
 
@@ -110,6 +127,7 @@ uploadBtn.addEventListener("click", async function () {
     formData.append("file", selectedFile);
 
     uploadBtn.disabled = true;
+
     uploadBtn.textContent = "Uploading...";
 
     status.textContent = "Uploading and processing PDF...";
@@ -118,14 +136,21 @@ uploadBtn.addEventListener("click", async function () {
     try {
 
         const response = await fetch("/api/upload", {
+
             method: "POST",
+
             body: formData
+
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.error || "PDF upload failed.");
+
+            throw new Error(
+                data.error || "PDF upload failed."
+            );
+
         }
 
         // Mark document as uploaded
@@ -159,7 +184,9 @@ uploadBtn.addEventListener("click", async function () {
         // Enable chatbot
         sendBtn.disabled = false;
 
-        // Reset previous chat
+        // Reset previous chat history
+        chatHistory = [];
+
         chatMessages.textContent = "";
 
         addMessage(
@@ -170,6 +197,7 @@ uploadBtn.addEventListener("click", async function () {
     } catch (error) {
 
         documentUploaded = false;
+
         sendBtn.disabled = true;
 
         status.textContent = error.message;
@@ -178,6 +206,7 @@ uploadBtn.addEventListener("click", async function () {
     } finally {
 
         uploadBtn.disabled = false;
+
         uploadBtn.textContent = "Upload Document";
 
     }
@@ -194,9 +223,13 @@ function addMessage(type, message) {
     const messageDiv = document.createElement("div");
 
     if (type === "user") {
+
         messageDiv.className = "user-message";
+
     } else {
+
         messageDiv.className = "bot-message";
+
     }
 
     messageDiv.textContent = message;
@@ -210,7 +243,73 @@ function addMessage(type, message) {
 
 
 // ---------------------------------------
-// 6. SEND QUESTION TO FLASK API
+// 6. DISPLAY ROBERTA AND GEMINI ANSWERS
+// ---------------------------------------
+
+function displayModelAnswers(data) {
+
+    // RoBERTa answer container
+    const robertaDiv = document.createElement("div");
+
+    robertaDiv.className = "bot-message";
+
+    const robertaTitle = document.createElement("strong");
+
+    robertaTitle.textContent = "RoBERTa - Extractive Answer";
+
+    const robertaAnswer = document.createElement("p");
+
+    robertaAnswer.textContent =
+        data.roberta_answer || "No relevant answer found.";
+
+    const robertaScore = document.createElement("small");
+
+    const score = Number(data.roberta_score);
+
+    robertaScore.textContent =
+        `Model Score: ${
+            Number.isFinite(score) ? score.toFixed(4) : "N/A"
+        }`;
+
+    robertaDiv.appendChild(robertaTitle);
+
+    robertaDiv.appendChild(robertaAnswer);
+
+    robertaDiv.appendChild(robertaScore);
+
+
+    // Gemini answer container
+    const geminiDiv = document.createElement("div");
+
+    geminiDiv.className = "bot-message";
+
+    const geminiTitle = document.createElement("strong");
+
+    geminiTitle.textContent = "Gemini - Generative Answer";
+
+    const geminiAnswer = document.createElement("p");
+
+    geminiAnswer.textContent =
+        data.gemini_answer || "No answer generated.";
+
+    geminiDiv.appendChild(geminiTitle);
+
+    geminiDiv.appendChild(geminiAnswer);
+
+
+    // Add both answers to chat
+    chatMessages.appendChild(robertaDiv);
+
+    chatMessages.appendChild(geminiDiv);
+
+    // Automatically scroll to latest answer
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+}
+
+
+// ---------------------------------------
+// 7. SEND QUESTION TO FLASK API
 // ---------------------------------------
 
 async function sendQuestion() {
@@ -233,7 +332,8 @@ async function sendQuestion() {
 
     sendBtn.disabled = true;
 
-    chatStatus.textContent = "Generating answer...";
+    chatStatus.textContent = "Generating answers using RoBERTa and Gemini...";
+
     chatStatus.style.color = "#315b9b";
 
     try {
@@ -243,11 +343,17 @@ async function sendQuestion() {
             method: "POST",
 
             headers: {
+
                 "Content-Type": "application/json"
+
             },
 
             body: JSON.stringify({
-                question: question
+
+                question: question,
+
+                history: chatHistory
+
             })
 
         });
@@ -255,19 +361,47 @@ async function sendQuestion() {
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.error || "Failed to generate answer.");
+
+            throw new Error(
+                data.error || "Failed to generate answers."
+            );
+
         }
 
-        // Display Gemini's answer
-        addMessage("bot", data.answer);
+        // Display RoBERTa and Gemini answers separately
+        displayModelAnswers(data);
+
+        // Update conversation history
+        chatHistory.push({
+
+            role: "user",
+
+            content: question
+
+        });
+
+        chatHistory.push({
+
+            role: "assistant",
+
+            content: data.gemini_answer || ""
+
+        });
+
+        // Keep only the latest 10 messages
+        chatHistory = chatHistory.slice(-10);
 
         chatStatus.textContent = "";
 
     } catch (error) {
 
-        addMessage("bot", "Error: " + error.message);
+        addMessage(
+            "bot",
+            "Error: " + error.message
+        );
 
-        chatStatus.textContent = "Could not generate an answer.";
+        chatStatus.textContent = "Could not generate answers.";
+
         chatStatus.style.color = "red";
 
     } finally {
@@ -280,19 +414,21 @@ async function sendQuestion() {
 
 
 // ---------------------------------------
-// 7. SEND BUTTON CLICK
+// 8. SEND BUTTON CLICK
 // ---------------------------------------
 
 sendBtn.addEventListener("click", sendQuestion);
 
 
 // ---------------------------------------
-// 8. PRESS ENTER TO SEND QUESTION
+// 9. PRESS ENTER TO SEND QUESTION
 // ---------------------------------------
 
 questionInput.addEventListener("keydown", function (event) {
 
     if (event.key === "Enter") {
+
+        event.preventDefault();
 
         sendQuestion();
 

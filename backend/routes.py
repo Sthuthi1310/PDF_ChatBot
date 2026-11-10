@@ -13,6 +13,7 @@ pdf_routes = Blueprint("pdf_routes", __name__)
 # ---------------------------------------
 # 1. UPLOAD AND PROCESS PDF
 # ---------------------------------------
+
 @pdf_routes.route("/api/upload", methods=["POST"])
 def upload_pdf():
 
@@ -52,6 +53,7 @@ def upload_pdf():
     pdf_path = os.path.join(upload_folder, filename)
 
     try:
+
         # Save uploaded PDF
         file.save(pdf_path)
 
@@ -78,6 +80,7 @@ def upload_pdf():
 # ---------------------------------------
 # 2. ASK QUESTIONS ABOUT UPLOADED PDF
 # ---------------------------------------
+
 @pdf_routes.route("/api/ask", methods=["POST"])
 def ask_question():
 
@@ -124,16 +127,34 @@ def ask_question():
             }), 400
 
     try:
-        # Generate answer using RAG pipeline
-        answer = answer_question(
+
+        # Generate answers using RoBERTa and Gemini
+        result = answer_question(
             question,
             chat_history
         )
 
-        # Return question and answer
+        # Validate RAG pipeline response
+        if not isinstance(result, dict):
+            raise ValueError(
+                "Invalid response received from RAG pipeline."
+            )
+
+        # Return both answers separately
         return jsonify({
             "question": question,
-            "answer": answer
+            "roberta_answer": result.get(
+                "roberta_answer",
+                "No relevant answer found."
+            ),
+            "roberta_score": result.get(
+                "roberta_score",
+                0.0
+            ),
+            "gemini_answer": result.get(
+                "gemini_answer",
+                "No answer generated."
+            )
         }), 200
 
     except FileNotFoundError as error:
@@ -141,6 +162,12 @@ def ask_question():
         return jsonify({
             "error": str(error)
         }), 404
+
+    except ValueError as error:
+
+        return jsonify({
+            "error": str(error)
+        }), 400
 
     except Exception as error:
 

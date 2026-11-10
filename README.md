@@ -1,79 +1,105 @@
-# Intelligent Document Question Answering System
+# Intelligent PDF Question Answering Chatbot
 
-An AI-powered PDF Question Answering System that allows users to upload PDF documents and ask questions based on their content. The system uses **Retrieval-Augmented Generation (RAG)** to retrieve relevant information from uploaded documents and generate context-aware answers.
-
-## Project Overview
-
-Reading and searching through lengthy PDF documents can be time-consuming. This project simplifies the process by allowing users to interact with their documents through a question-answering interface.
-
-The system extracts text from uploaded PDFs, divides it into smaller chunks, converts the chunks into vector embeddings, and stores them in a FAISS vector database. When a user asks a question, the system retrieves relevant chunks, reranks them using a Cross-Encoder model, and generates an answer using Google's Gemini API.
+An AI-powered PDF Question Answering Chatbot that allows users to upload PDF documents and ask questions about their contents. The system uses Retrieval-Augmented Generation (RAG), semantic search, document reranking, and two different question-answering models to generate and compare answers.
 
 ## Features
 
 - **PDF Upload:** Upload PDF documents through a web interface.
-- **Text Extraction:** Extract textual content from uploaded PDF files.
-- **Text Chunking:** Split extracted text into smaller, manageable chunks.
-- **Semantic Embeddings:** Generate embeddings using Sentence Transformers.
-- **Vector Search:** Retrieve relevant document chunks using FAISS.
-- **Cross-Encoder Reranking:** Improve retrieval relevance by reranking candidate chunks.
-- **AI-Powered Answers:** Generate natural-language answers using Google Gemini.
-- **Context-Aware Conversations:** Support follow-up questions using conversation history.
-- **Flask Backend:** Handle document processing and question-answering requests through REST API endpoints.
+- **Text Extraction:** Extract text from uploaded PDF files.
+- **Text Chunking:** Divide extracted text into smaller chunks for efficient retrieval.
+- **Semantic Embeddings:** Generate text embeddings using Sentence Transformers.
+- **Vector Database:** Store and retrieve document chunks using FAISS.
+- **Document Reranking:** Use a Cross-Encoder model to rerank retrieved chunks based on relevance.
+- **Extractive Question Answering:** Use RoBERTa to extract answers directly from document text.
+- **Generative Question Answering:** Use Google Gemini to generate detailed, natural-language answers.
+- **Answer Comparison:** Display RoBERTa and Gemini answers separately for comparison.
+- **Conversation History:** Support follow-up questions using previous conversation context.
 
 ## Technologies Used
 
 | Component | Technology |
 |---|---|
 | Programming Language | Python |
-| Backend Framework | Flask |
+| Backend | Flask |
 | Frontend | HTML, CSS, JavaScript |
-| Text Extraction | PDF processing library |
+| PDF Processing | PDF text extraction |
 | Text Embeddings | Sentence Transformers |
 | Vector Database | FAISS |
 | Reranking | Cross-Encoder |
-| Language Model | Google Gemini API |
-| Environment Management | Python Virtual Environment |
+| Extractive QA | RoBERTa (SQuAD2) |
+| Generative QA | Google Gemini API |
+| Deep Learning Framework | PyTorch |
+
+## Models Used
+
+### 1. Sentence Transformer
+
+Used to convert document chunks into numerical embeddings for semantic similarity search.
+
+### 2. Cross-Encoder
+
+Model: `cross-encoder/ms-marco-MiniLM-L6-v2`
+
+Used to rerank retrieved document chunks according to their relevance to the user's question.
+
+### 3. RoBERTa
+
+Model: `deepset/roberta-base-squad2`
+
+Used for extractive question answering. It identifies answer spans directly from the retrieved document text.
+
+### 4. Google Gemini
+
+Used for generative question answering. It generates detailed and readable answers using the retrieved PDF context.
 
 ## System Architecture
 
+The application follows a Retrieval-Augmented Generation (RAG) pipeline.
+
 ```text
-             PDF Document
-                   |
-                   v
-             PDF Upload
-                   |
-                   v
+                PDF Upload
+                    |
+                    v
              Text Extraction
-                   |
-                   v
-              Text Chunking
-                   |
-                   v
+                    |
+                    v
+               Text Chunking
+                    |
+                    v
           Sentence Transformer
-             (Embeddings)
-                   |
-                   v
-            FAISS Vector Store
-                   |
-                   v
+              Embeddings
+                    |
+                    v
+             FAISS Vector Store
+                    |
+                    |
              User Question
-                   |
-                   v
-          Semantic Retrieval
-          (Top 8 Candidates)
-                   |
-                   v
-           Cross-Encoder
-              Reranking
-                   |
-                   v
-           Top 3 Relevant Chunks
-                   |
-                   v
-             Gemini API
-                   |
-                   v
-          Context-Based Answer
+                    |
+                    v
+          Semantic Similarity Search
+                    |
+                    v
+            Relevant Chunks
+                    |
+                    v
+             Cross-Encoder
+                Reranking
+                    |
+                    v
+           Top Relevant Chunks
+                    |
+             +------+------+
+             |             |
+             v             v
+          RoBERTa        Gemini
+        Extractive     Generative
+          Answer         Answer
+             |             |
+             +------+------+
+                    |
+                    v
+          Display Both Answers
+              in Frontend
 ```
 
 ## Project Structure
@@ -82,22 +108,20 @@ The system extracts text from uploaded PDFs, divides it into smaller chunks, con
 PDF_ChatBot/
 │
 ├── backend/
-│   ├── __init__.py
+│   ├── app.py
 │   ├── routes.py
 │   ├── rag_pipeline.py
-│   └── reranker.py
+│   ├── reranker.py
+│   └── qa_model.py
 │
 ├── document_processing/
-│   ├── __init__.py
 │   ├── pdf_loader.py
 │   └── text_splitter.py
 │
 ├── embeddings/
-│   ├── __init__.py
 │   └── embedder.py
 │
 ├── vectorstore/
-│   ├── __init__.py
 │   └── vector_store.py
 │
 ├── frontend/
@@ -109,12 +133,12 @@ PDF_ChatBot/
 │
 ├── .env
 ├── .gitignore
-├── app.py
 ├── requirements.txt
+├── app.py
 └── README.md
 ```
 
-*Note: Adjust the structure above if your actual project contains additional files or uses different folder names.*
+*Note: The structure above represents the main project modules. Generated files and additional utility modules may also exist.*
 
 ## Installation and Setup
 
@@ -124,7 +148,7 @@ PDF_ChatBot/
 git clone https://github.com/YOUR_USERNAME/YOUR_REPOSITORY.git
 ```
 
-Navigate into the project directory:
+Navigate to the project directory:
 
 ```bash
 cd PDF_ChatBot
@@ -138,8 +162,8 @@ python -m venv venv
 
 Activate the environment on Windows:
 
-```bash
-venv\Scripts\activate
+```powershell
+.\venv\Scripts\Activate.ps1
 ```
 
 ### 3. Install Dependencies
@@ -148,17 +172,17 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 4. Configure the Gemini API Key
+### 4. Configure Gemini API Key
 
-Create a `.env` file in the root directory:
+Create a `.env` file in the project root directory.
+
+Add your Gemini API key:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key
 ```
 
-Replace `your_gemini_api_key` with your actual Google Gemini API key.
-
-Keep the API key private. Do not upload the `.env` file to GitHub.
+Obtain an API key from [Google AI Studio](https://aistudio.google.com/).
 
 ### 5. Run the Application
 
@@ -172,57 +196,48 @@ Open the application in your browser:
 http://127.0.0.1:5001
 ```
 
-## How It Works
+## How to Use
 
-### 1. Document Processing
-The user uploads a PDF document. The system extracts its textual content and divides it into smaller chunks.
+1. Start the Flask application.
+2. Open the chatbot in your browser.
+3. Upload a PDF document.
+4. Wait for the document to be processed.
+5. Enter a question related to the uploaded document.
+6. View the answer generated by RoBERTa.
+7. View the detailed answer generated by Gemini.
+8. Ask follow-up questions to explore the document further.
 
-### 2. Embedding Generation
-Sentence Transformers converts each text chunk into a numerical vector representation that captures its semantic meaning.
+## Answer Generation
 
-### 3. Vector Storage
-The generated embeddings are stored in a FAISS vector index to support efficient similarity-based retrieval.
+The application uses two different question-answering approaches:
 
-### 4. Relevant Information Retrieval
-When a user submits a question, the system converts it into an embedding and retrieves the eight most relevant chunks from the vector store.
+**RoBERTa – Extractive Question Answering**
 
-### 5. Cross-Encoder Reranking
-The Cross-Encoder evaluates the question and retrieved chunks together, ranks them according to relevance, and selects the top three chunks.
+RoBERTa identifies and extracts relevant answer spans from the retrieved document chunks.
 
-### 6. Answer Generation
-The selected chunks are passed as context to the Gemini API, which generates a natural-language answer based on the retrieved document content.
+**Gemini – Generative Question Answering**
 
-## API Endpoints
+Gemini uses the retrieved document context to generate detailed, natural-language responses.
 
-| Endpoint | Method | Description |
-|---|---|---|
-| `/api/upload` | POST | Upload and process a PDF document |
-| `/api/ask` | POST | Submit a question and receive an answer |
-
-## Models Used
-
-| Model | Purpose |
-|---|---|
-| Sentence Transformer | Generate semantic embeddings |
-| `cross-encoder/ms-marco-MiniLM-L6-v2` | Rerank retrieved document chunks |
-| `gemini-3.5-flash` | Generate context-aware answers |
+Both answers are displayed separately, allowing users to compare extractive and generative question-answering approaches.
 
 ## Future Enhancements
 
-- Integrate a RoBERTa-based extractive Question Answering model.
-- Compare extractive answers with Gemini-generated answers.
-- Improve answer accuracy through retrieval and model evaluation.
-- Add support for multiple PDF documents.
-- Improve conversation history management.
-- Implement document-grounded responses with better handling of questions outside the uploaded content.
-- Add performance evaluation using retrieval accuracy, answer quality, and response time.
+- Improve RoBERTa answer extraction and no-answer detection.
+- Improve handling of long document contexts.
+- Evaluate answer accuracy using a larger set of test questions.
+- Compare model performance using appropriate evaluation metrics.
+- Improve response formatting and frontend presentation.
+- Support multiple PDF documents.
+- Add document-level conversation management.
 
-## Author
+## Security
 
-**Sthuthi Sheela**
-
-Computer Science and Engineering
+- Keep API keys in environment variables.
+- Exclude `.env` and virtual environment directories from version control.
+- Validate uploaded file types.
+- Use secure filenames for uploaded documents.
 
 ## License
 
-This project is intended for educational and academic purposes.
+This project is developed for academic and educational purposes.

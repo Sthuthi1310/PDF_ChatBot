@@ -9,7 +9,6 @@ try:
 except ImportError:
     genai = None
 
-
 from document_processing.pdf_loader import extract_text
 from document_processing.text_splitter import split_text
 
@@ -21,6 +20,7 @@ from vectorstore.vector_store import (
 )
 
 from backend.reranker import DocumentReranker
+from backend.qa_model import RoBERTaQuestionAnswering
 
 
 # ---------------------------------------
@@ -31,10 +31,11 @@ load_dotenv()
 
 
 # ---------------------------------------
-# 2. INITIALIZE CROSS-ENCODER
+# 2. INITIALIZE MODELS
 # ---------------------------------------
 
 reranker = None
+qa_model = None
 
 
 def get_reranker():
@@ -45,6 +46,16 @@ def get_reranker():
         reranker = DocumentReranker()
 
     return reranker
+
+
+def get_qa_model():
+
+    global qa_model
+
+    if qa_model is None:
+        qa_model = RoBERTaQuestionAnswering()
+
+    return qa_model
 
 
 # ---------------------------------------
@@ -58,7 +69,7 @@ def process_pdf(pdf_path):
     # Extract text from PDF
     extracted_text = extract_text(pdf_path)
 
-    if not extracted_text.strip():
+    if not extracted_text or not extracted_text.strip():
         raise ValueError("No readable text found in the PDF.")
 
     print("PDF text extracted successfully!")
@@ -91,14 +102,16 @@ def process_pdf(pdf_path):
 
 
 # ---------------------------------------
-# 4. GENERATE ANSWER FROM PDF
-#    USING DEEP LEARNING + RAG
+# 4. GENERATE ANSWERS FROM PDF
+#    USING ROBERTA + GEMINI
 # ---------------------------------------
 
 def answer_question(question, chat_history=None):
 
     if not question or not question.strip():
         raise ValueError("Please enter a question.")
+
+    question = question.strip()
 
     if chat_history is None:
         chat_history = []
@@ -133,7 +146,14 @@ def answer_question(question, chat_history=None):
     )
 
     if not relevant_chunks:
-        return "No relevant information found in the uploaded PDF."
+
+        return {
+            "roberta_answer": "No relevant information found.",
+            "roberta_score": 0.0,
+            "gemini_answer": (
+                "No relevant information found in the uploaded PDF."
+            )
+        }
 
     print(f"Retrieved {len(relevant_chunks)} candidate chunks.")
 
@@ -152,15 +172,76 @@ def answer_question(question, chat_history=None):
     )
 
     if not reranked_chunks:
-        return "No relevant information found in the uploaded PDF."
+
+        return {
+            "roberta_answer": "No relevant information found.",
+            "roberta_score": 0.0,
+            "gemini_answer": (
+                "No relevant information found in the uploaded PDF."
+            )
+        }
 
     print("Cross-Encoder reranking completed!")
 
-    # Combine the best-ranked chunks
+    # Combine the best-ranked chunks for Gemini
     context = "\n\n".join(reranked_chunks)
 
     # -----------------------------------
-    # D. GET GEMINI API KEY
+    # D. GENERATE ANSWER USING ROBERTA
+    # -----------------------------------
+
+    print("Generating answer using RoBERTa...")
+
+    roberta_result = {
+        "answer": "No relevant answer found.",
+        "score": 0.0
+    }
+
+    try:
+
+        extractive_model = get_qa_model()
+
+        roberta_results = []
+
+        # Run RoBERTa on each retrieved chunk
+        for chunk in reranked_chunks:
+
+            try:
+
+                result = extractive_model.answer(
+                    question,
+                    chunk
+                )
+
+                if (
+                    result
+                    and result.get("answer")
+                    and result["answer"] != "No relevant answer found."
+                ):
+
+                    roberta_results.append(result)
+
+            except Exception as exc:
+
+                print(f"RoBERTa chunk processing failed: {exc}")
+
+        # Select the result with the highest model score
+        if roberta_results:
+
+            roberta_result = max(
+                roberta_results,
+                key=lambda item: item.get("score", 0.0)
+            )
+
+        print("RoBERTa answer generation completed!")
+
+    except Exception as exc:
+
+        print(f"RoBERTa model failed: {exc}")
+        print("Continuing with Gemini...")
+
+    # -----------------------------------
+    # E. GET GEMINI API KEY
     # -----------------------------------
 
     api_key = (
@@ -169,10 +250,13 @@ def answer_question(question, chat_history=None):
     )
 
     if not api_key:
-        raise ValueError("GEMINI_API_KEY is missing.")
+        raise ValueError(
+            "GEMINI_API_KEY is missing. "
+            "Add it to your .env file."
+        )
 
     # -----------------------------------
-    # E. PREPARE CHAT HISTORY
+    # F. PREPARE CHAT HISTORY
     # -----------------------------------
 
     history_text = ""
@@ -187,35 +271,37 @@ def answer_question(question, chat_history=None):
             history_text += f"\n{role}: {content}"
 
     # -----------------------------------
-    # F. PREPARE GEMINI PROMPT
+    # G. PREPARE GEMINI PROMPT
     # -----------------------------------
 
     prompt = f"""
-    You are a helpful PDF question-answering assistant.
+You are a helpful PDF question-answering assistant.
 
-    Use the conversation history to understand follow-up questions.
+Use the conversation history to understand follow-up questions.
 
-    Answer using ONLY the information available in the
-    retrieved PDF context.
+Answer using ONLY the information available in the
+retrieved PDF context.
 
-    If the answer is not available in the context,
-    clearly say that the information is not available
-    in the uploaded PDF.
+Do not introduce information from outside the PDF.
 
-    Previous Conversation:
-    {history_text}
+If the answer is not available in the context,
+clearly say that the information is not available
+in the uploaded PDF.
 
-    Retrieved PDF Context:
-    {context}
+Previous Conversation:
+{history_text}
 
-    Current User Question:
-    {question}
+Retrieved PDF Context:
+{context}
 
-    Answer:
-    """
+Current User Question:
+{question}
+
+Answer:
+"""
 
     # -----------------------------------
-    # G. GEMINI MODEL CONFIGURATION
+    # H. GEMINI MODEL CONFIGURATION
     # -----------------------------------
 
     gemini_models = [
@@ -227,8 +313,7 @@ def answer_question(question, chat_history=None):
     last_error = None
 
     # -----------------------------------
-    # H. GENERATE ANSWER USING NEW SDK
-    #    WITH AUTOMATIC RETRIES
+    # I. GENERATE ANSWER USING NEW SDK
     # -----------------------------------
 
     if genai is not None and hasattr(genai, "Client"):
@@ -254,9 +339,15 @@ def answer_question(question, chat_history=None):
 
                         answer = getattr(response, "text", None)
 
-                        if answer:
-                            print("Answer generated successfully!")
-                            return answer.strip()
+                        if answer and answer.strip():
+
+                            print("Gemini answer generated successfully!")
+
+                            return {
+                                "roberta_answer": roberta_result["answer"],
+                                "roberta_score": roberta_result["score"],
+                                "gemini_answer": answer.strip()
+                            }
 
                         last_error = ValueError(
                             "Gemini did not generate an answer."
@@ -302,9 +393,10 @@ def answer_question(question, chat_history=None):
         except Exception as exc:
 
             last_error = exc
+            print(f"New Gemini SDK failed: {exc}")
 
     # -----------------------------------
-    # I. FALLBACK TO OLDER GOOGLE SDK
+    # J. FALLBACK TO OLDER GOOGLE SDK
     # -----------------------------------
 
     else:
@@ -321,6 +413,10 @@ def answer_question(question, chat_history=None):
 
                     try:
 
+                        print(
+                            f"Generating answer using {model_name}..."
+                        )
+
                         model = google_generative_ai.GenerativeModel(
                             model_name
                         )
@@ -329,9 +425,15 @@ def answer_question(question, chat_history=None):
 
                         answer = getattr(response, "text", None)
 
-                        if answer:
-                            print("Answer generated successfully!")
-                            return answer.strip()
+                        if answer and answer.strip():
+
+                            print("Gemini answer generated successfully!")
+
+                            return {
+                                "roberta_answer": roberta_result["answer"],
+                                "roberta_score": roberta_result["score"],
+                                "gemini_answer": answer.strip()
+                            }
 
                         last_error = ValueError(
                             "Gemini did not generate an answer."
@@ -359,10 +461,6 @@ def answer_question(question, chat_history=None):
 
                             if attempt < 2:
 
-                                print(
-                                    f"Retrying in {wait_time} seconds..."
-                                )
-
                                 time.sleep(wait_time)
                                 continue
 
@@ -382,7 +480,7 @@ def answer_question(question, chat_history=None):
             ) from exc
 
     # -----------------------------------
-    # J. HANDLE FINAL ERRORS
+    # K. HANDLE FINAL ERRORS
     # -----------------------------------
 
     if last_error is not None:
